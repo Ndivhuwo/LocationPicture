@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">LocationPictures</string>
+    <string name="google_geocode_url">maps.googleapis.com</string>
+    <string name="foursquare_url">api.foursquare.com</string>
+    <string name="foursquare_client_id">PSLIHTHV0FIXI2NEQBJMDBCJZDMZQN1W0AOACPN5C2NZYSW5</string>
+    <string name="foursquare_client_secret">3B3ELCVBUGOFF1AX0PCZSHTVQX3LFGIY4QSARTY3NFJ5A2CH</string>
+    <string name="google_api_key"> AIzaSyCWsjrJZsVlXk1W4snzvbl2h88HdjULnVA</string>
+    <string name="text_error">Error</string>
+    <string name="text_permissions_not_set">You cannot continue using this app without the required permissions.</string>
+    <string name="error_body_internet_connection_required">An internet connection is required to continue</string>
+    <string name="text_done">Done</string>
+    <string name="sentence_functionality_not_yet_added">Functionality not yet added</string>
+    <string name="text_deny">Deny</string>
+    <string name="text_accept">Accept</string>
+    <string name="text_ok">OK</string>
+    <string name="text_location_list">Location List</string>
+    <string name="text_loading">Loading...</string>
+    <string name="text_no_places">No places found</string>
+    <string name="text_location_title">Location</string>
+    <string name="text_no_images">No images available</string>
+    <string name="text_request_images_error">Could not get the images for this location</string>
+    <string name="text_loading_places">Loading places...</string>
+</resources>
