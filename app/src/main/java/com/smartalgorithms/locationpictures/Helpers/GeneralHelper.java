@@ -9,8 +9,17 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import com.smartalgorithms.locationpictures.App;
 import com.smartalgorithms.locationpictures.R;
+
+import java.io.IOException;
 
 import javax.inject.Inject;
 
@@ -81,6 +90,35 @@ public class GeneralHelper {
             Glide.with(context)
                     .load(url)
                     .into(imageView);
+        }
+
+    }
+
+    public static class IntegerTypeAdapter extends TypeAdapter<Integer> {
+        @Override
+        public void write(JsonWriter jsonWriter, Integer number) throws IOException {
+            if (number == null) {
+                jsonWriter.nullValue();
+                return;
+            }
+            jsonWriter.value(number);
+        }
+
+        @Override
+        public Integer read(JsonReader jsonReader) throws IOException {
+            if (jsonReader.peek() == JsonToken.NULL) {
+                jsonReader.nextNull();
+                return null;
+            }
+            int value;
+            try {
+                //String value = jsonReader.nextString();
+                value = jsonReader.nextInt();
+            } catch (NumberFormatException e) {
+                //throw new JsonSyntaxException(e);
+                value = 0;
+            }
+            return  value;
         }
 
     }

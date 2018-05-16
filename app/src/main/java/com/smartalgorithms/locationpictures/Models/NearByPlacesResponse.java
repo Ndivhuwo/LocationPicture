@@ -89,7 +89,6 @@ public class NearByPlacesResponse extends NetworkResponse{
                         private double lat;
                         private double lng;
                         private int distance;
-                        private int postalCode;
                         private String[] formattedAddress;
 
                         public void setDistance(int distance) {
@@ -98,10 +97,6 @@ public class NearByPlacesResponse extends NetworkResponse{
 
                         public String[] getFormattedAddress() {
                             return formattedAddress;
-                        }
-
-                        public int getPostalCode() {
-                            return postalCode;
                         }
 
                         public String getAddress() {

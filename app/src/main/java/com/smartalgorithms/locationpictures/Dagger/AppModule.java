@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.smartalgorithms.locationpictures.App;
 import com.smartalgorithms.locationpictures.Helpers.GeneralHelper;
 import com.smartalgorithms.locationpictures.Helpers.LoggingHelper;
@@ -87,7 +88,10 @@ public class AppModule {
     @Singleton
     @Provides
     public Gson provideGson() {
-        return new Gson();
+        return new GsonBuilder()
+                .registerTypeAdapter(Integer.class, new GeneralHelper.IntegerTypeAdapter())
+                .serializeNulls()
+                .create();
     }
 
     @Singleton

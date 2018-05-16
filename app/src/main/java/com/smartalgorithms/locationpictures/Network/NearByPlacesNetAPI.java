@@ -75,6 +75,10 @@ public class NearByPlacesNetAPI {
             ioe.printStackTrace();
             nearByPlacesResponse.setSuccess(false);
             nearByPlacesResponse.setMessage(ioe.getMessage() + " " + ioe.getCause());
+        } catch (NumberFormatException nfe) {
+            nfe.printStackTrace();
+            nearByPlacesResponse.setSuccess(false);
+            nearByPlacesResponse.setMessage(nfe.getMessage() + " " + nfe.getCause());
         }
 
         return nearByPlacesResponse;
