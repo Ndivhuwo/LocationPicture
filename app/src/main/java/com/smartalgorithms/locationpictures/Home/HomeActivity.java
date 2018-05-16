@@ -137,6 +137,11 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
     }
 
     @Override
+    public void displayMessage(String title, String message, View.OnClickListener okListener, View.OnClickListener cancelListener, String okText, String cancelText) {
+        dialogHelper.showCustomAlertDialog(this, title, message, okListener, cancelListener, true, okText, cancelText);
+    }
+
+    @Override
     public void togglePermissions(boolean permissionsSet) {
 
     }
@@ -152,7 +157,8 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
             finishActivity();
     }
 
-    private void finishActivity() {
+    @Override
+    public void finishActivity() {
         finish();
     }
 

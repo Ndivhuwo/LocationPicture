@@ -64,6 +64,12 @@ public class LocationPicturesActivity extends AppCompatActivity implements Locat
         }
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        loadImages = false;
+    }
+
     private void setupUI() {
         setContentView(R.layout.activity_location_pictures);
         ButterKnife.bind(this);

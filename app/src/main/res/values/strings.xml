@@ -6,7 +6,7 @@
     <string name="foursquare_client_secret">3B3ELCVBUGOFF1AX0PCZSHTVQX3LFGIY4QSARTY3NFJ5A2CH</string>
     <string name="google_api_key"> AIzaSyCWsjrJZsVlXk1W4snzvbl2h88HdjULnVA</string>
     <string name="text_error">Error</string>
-    <string name="text_permissions_not_set">You cannot continue using this app without the required permissions.</string>
+    <string name="text_permissions_not_set">You cannot continue using this app without the required permissions. \n Do you wish to prompt the permissions again?</string>
     <string name="error_body_internet_connection_required">An internet connection is required to continue</string>
     <string name="text_done">Done</string>
     <string name="sentence_functionality_not_yet_added">Functionality not yet added</string>
@@ -20,4 +20,6 @@
     <string name="text_no_images">No images available</string>
     <string name="text_request_images_error">Could not get the images for this location</string>
     <string name="text_loading_places">Loading places...</string>
+    <string name="text_cancel">Cancel</string>
+    <string name="text_waiting_for_current_location">Waiting for current location...</string>
 </resources>

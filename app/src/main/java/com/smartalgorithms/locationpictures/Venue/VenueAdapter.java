@@ -54,7 +54,7 @@ public class VenueAdapter extends PagerAdapter{
         View viewLayout = layoutInflater.inflate(R.layout.item_venue_photo, container, false);
         ButterKnife.bind(VenueAdapter.this, viewLayout);
         String imageUrl = photos.get(position).getPrefix() + photos.get(position).getWidth() + "x" + photos.get(position).getHeight() + photos.get(position).getSuffix();
-        generalHelper.imageLoaderUrl(context, ziv_image_display, imageUrl, false);
+        generalHelper.imageLoaderUrl(context, ziv_image_display, imageUrl, true);
         container.addView(viewLayout);
         return viewLayout;
     }

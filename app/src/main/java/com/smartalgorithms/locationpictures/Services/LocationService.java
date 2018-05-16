@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -25,9 +26,13 @@ import com.smartalgorithms.locationpictures.App;
 import com.smartalgorithms.locationpictures.Helpers.GeneralHelper;
 import com.smartalgorithms.locationpictures.Helpers.LoggingHelper;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.inject.Inject;
 
+import io.reactivex.Single;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Ndivhuwo Nthambeleni on 2018/05/14.
@@ -39,6 +44,7 @@ public class LocationService extends Service implements GoogleApiClient.Connecti
     private GoogleApiClient googleApiClient;
     private Context context;
     private LocationRequest locationRequest;
+    private boolean retry = true;
     @Inject LoggingHelper loggingHelper;
     @Inject GeneralHelper generalHelper;
     @Inject Intent intent;
@@ -74,7 +80,16 @@ public class LocationService extends Service implements GoogleApiClient.Connecti
     @SuppressWarnings("MissingPermission")
     private void requestLocationUpdates() {
         loggingHelper.d(TAG, "requestLocationUpdates");
-        LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, LocationService.this);
+        try {
+            LocationServices.FusedLocationApi.requestLocationUpdates(googleApiClient, locationRequest, LocationService.this);
+        } catch (IllegalStateException ise) {
+            ise.printStackTrace();
+            if(retry) {
+                retry = false;
+                startLocationUpdates();
+                SystemClock.sleep(5000);
+            }
+        }
     }
 
     private boolean checkPermissionLocation() {

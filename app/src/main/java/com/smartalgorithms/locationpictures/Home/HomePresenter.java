@@ -3,6 +3,7 @@ package com.smartalgorithms.locationpictures.Home;
 import android.Manifest;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.view.View;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.smartalgorithms.locationpictures.Helpers.GeneralHelper;
@@ -36,6 +37,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
     private GeneralHelper generalHelper;
     private LoggingHelper loggingHelper;
     private Provider<HomePlaceAdapter> homePlaceAdapterProvider;
+    private boolean requestPermissions = true;
 
     @Inject
     HomePresenter(RxPermissions rxPermissions, Provider<HomeUseCase> homeUseCaseProvider,
@@ -62,21 +64,33 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
     public void requestPhonePermissions() {
 
         if (!rxPermissions.isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || !rxPermissions.isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
-            rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                    .subscribe(granted -> {
-                        if(granted) {
-                            loggingHelper.d(TAG, "Permissions set");
-                            viewListener.togglePermissions(true);
-                            viewListener.requestLocation();
-                        }
-                        else {
-                            loggingHelper.d(TAG, "Permissions not set");
-                            viewListener.displayMessage(resourcesHelper.getString(R.string.text_error), resourcesHelper.getString(R.string.text_permissions_not_set));
-                            viewListener.togglePermissions(false);
-                        }
-                    });
-        }else
+            if(requestPermissions)
+                rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        .subscribe(granted -> {
+                            if(granted) {
+                                loggingHelper.d(TAG, "Permissions set");
+                                viewListener.togglePermissions(true);
+                                viewListener.requestLocation();
+                            }
+                            else {
+                                requestPermissions = false;
+                                loggingHelper.d(TAG, "Permissions not set");
+                                View.OnClickListener okListener = view -> {
+                                    requestPermissions = true;
+                                    requestPhonePermissions();
+                                };
+                                View.OnClickListener cancelListener = view -> {
+                                    viewListener.finishActivity();
+                                };
+                                viewListener.displayMessage(resourcesHelper.getString(R.string.text_error), resourcesHelper.getString(R.string.text_permissions_not_set),
+                                        okListener, cancelListener, resourcesHelper.getString(R.string.text_ok), resourcesHelper.getString(R.string.text_cancel));
+                                viewListener.togglePermissions(false);
+                            }
+                        });
+        }else {
             loggingHelper.d(TAG, "Permissions Already set");
+            viewListener.requestLocation();
+        }
     }
 
     @Override
