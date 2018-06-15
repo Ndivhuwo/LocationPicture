@@ -1,6 +1,7 @@
 package com.smartalgorithms.locationpictures.Venue;
 
 import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -12,8 +13,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.smartalgorithms.locationpictures.Constants;
+import com.smartalgorithms.locationpictures.Dagger.Annotations;
 import com.smartalgorithms.locationpictures.Helpers.LoggingHelper;
 import com.smartalgorithms.locationpictures.R;
+import com.uber.autodispose.AutoDispose;
+import com.uber.autodispose.android.lifecycle.AndroidLifecycleScopeProvider;
 
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +26,7 @@ import javax.inject.Inject;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import dagger.android.AndroidInjection;
+import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 
@@ -35,6 +40,13 @@ public class VenueActivity extends AppCompatActivity implements VenueContract.Vi
     @Inject VenuePresenter presenter;
     @Inject Intent intent;
     @Inject LoggingHelper loggingHelper;
+    @Inject
+    @Annotations.SubscribeScheduler
+    Scheduler subscribeScheduler;
+    @Inject
+    @Annotations.ObserveScheduler
+    Scheduler observeScheduler;
+
     @BindView(R.id.vp_image_swipe) ViewPager vp_image_swipe;
     @BindView(R.id.llyt_info) LinearLayout llyt_info;
     @BindView(R.id.tv_title) TextView tv_title;
@@ -66,8 +78,10 @@ public class VenueActivity extends AppCompatActivity implements VenueContract.Vi
         ButterKnife.bind(this);
         iv_info.setOnClickListener(viewClickListener);
         Single.timer(3000, TimeUnit.MILLISECONDS)
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .observeOn(AndroidSchedulers.mainThread())
+                .doOnDispose(() -> loggingHelper.i(TAG, "Disposing timer Single"))
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .as(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this, Lifecycle.Event.ON_DESTROY)))
                 .subscribe(time ->toggleInfo());
     }
 

@@ -1,5 +1,6 @@
 package com.smartalgorithms.locationpictures.Home;
 
+import android.arch.lifecycle.LifecycleOwner;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
@@ -21,6 +22,7 @@ import dagger.Module;
 import dagger.Provides;
 import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 
 /**
@@ -29,46 +31,87 @@ import io.reactivex.schedulers.Schedulers;
  */
 @Module
 public abstract class HomeModule {
+    @Annotations.ActivityScope
     @Provides
-    static HomePresenter provideHomePresenter(HomeContract.ViewListener viewListener, Provider<HomeUseCase> homeUseCaseProvider,
+    static HomePresenter provideHomePresenter(LifecycleOwner lifecycleOwner, HomeContract.ViewListener viewListener, Provider<HomeUseCase> homeUseCaseProvider,
                                               RxPermissions rxPermissions, ResourcesHelper resourcesHelper, GeneralHelper generalHelper,
                                               LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider) {
-        return new HomePresenter(rxPermissions, homeUseCaseProvider, viewListener, resourcesHelper, generalHelper, loggingHelper, homePlaceAdapterProvider);
+        return new HomePresenter(lifecycleOwner, rxPermissions, homeUseCaseProvider, viewListener, resourcesHelper, generalHelper, loggingHelper, homePlaceAdapterProvider);
     }
 
-    @Binds
-    abstract HomeContract.PresenterListener providePresenterListener(HomePresenter homePresenter);
-
+    @Annotations.ActivityScope
     @Provides
-    static HomeUseCase provideHomeUseCase(HomeContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider, LocationNetAPI locationNetAPI,
-                                          LocationResponse locationResponse, NearByPlacesNetAPI nearByPlacesNetAPI, NearByPlacesResponse nearByPlacesResponse) {
-        return new HomeUseCase(presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), locationNetAPI, locationResponse, nearByPlacesNetAPI, nearByPlacesResponse);
+    static HomeViewModel provideHomeViewModel(HomeContract.ViewListener viewListener, Provider<HomeUseCase> homeUseCaseProvider,
+                                              RxPermissions rxPermissions, ResourcesHelper resourcesHelper, GeneralHelper generalHelper,
+                                              LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider, Provider<CompositeDisposable> compositeDisposableProvider) {
+        return new HomeViewModel(rxPermissions, homeUseCaseProvider, viewListener, resourcesHelper, generalHelper, loggingHelper, homePlaceAdapterProvider, compositeDisposableProvider);
     }
 
-    @Binds
-    abstract HomeContract.AdapterPresenterListener provideAdapterPresenterListener(HomePresenter homePresenter);
+    @Annotations.ActivityScope
+    @Provides
+    static HomeUseCase provideHomeUseCase(LifecycleOwner lifecycleOwner, HomeContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider, LocationNetAPI locationNetAPI,
+                                          LocationResponse locationResponse, NearByPlacesNetAPI nearByPlacesNetAPI, NearByPlacesResponse nearByPlacesResponse, LoggingHelper loggingHelper) {
+        return new HomeUseCase(lifecycleOwner, presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), locationNetAPI, locationResponse, nearByPlacesNetAPI, nearByPlacesResponse, loggingHelper);
+    }
 
+    @Annotations.ActivityScope
+    @Provides
+    static CompositeDisposable provideCompositeDisposable() {
+        return new CompositeDisposable();
+    }
+
+    @Annotations.ActivityScope
+    @Annotations.SubscribeScheduler
+    @Provides
+    static Scheduler provideSubscribeScheduler() {
+        return Schedulers.computation();
+    }
+
+    @Annotations.ActivityScope
+    @Annotations.ObserveScheduler
+    @Provides
+    static Scheduler provideObserveScheduler() {
+        return AndroidSchedulers.mainThread();
+    }
+
+    @Annotations.ActivityScope
     @Provides
     static HomePlaceAdapter provideHomePlaceAdapter(HomeContract.AdapterPresenterListener listener, Bundle bundle) {
         return new HomePlaceAdapter(bundle, listener);
     }
 
+    @Annotations.ActivityScope
     @Provides
-    static RxPermissions providesRxPermissions(HomeActivity homeActivity){
+    static RxPermissions providesRxPermissions(HomeActivity homeActivity) {
         return new RxPermissions(homeActivity);
     }
 
-    @Binds
-    abstract HomeContract.ViewListener provideViewListener(HomeActivity homeActivity);
-
+    @Annotations.ActivityScope
     @Provides
     @Annotations.ActivityContext
-    static Context provideActivityContext(HomeActivity homeActivity){
+    static Context provideActivityContext(HomeActivity homeActivity) {
         return homeActivity;
     }
 
+    @Annotations.ActivityScope
     @Provides
     static LocalBroadcastManager provideLocalBroadcastManager(@Annotations.ActivityContext Context context) {
         return LocalBroadcastManager.getInstance(context);
     }
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract HomeContract.PresenterListener providePresenterListener(HomeViewModel homeViewModel);
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract LifecycleOwner provideLifecycleOwner(HomeActivity homeActivity);
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract HomeContract.AdapterPresenterListener provideAdapterPresenterListener(HomePresenter homePresenter);
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract HomeContract.ViewListener provideViewListener(HomeActivity homeActivity);
 }

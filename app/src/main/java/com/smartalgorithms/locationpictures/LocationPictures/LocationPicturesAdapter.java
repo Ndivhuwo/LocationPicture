@@ -34,7 +34,7 @@ import butterknife.ButterKnife;
 
 public class LocationPicturesAdapter extends RecyclerView.Adapter<LocationPicturesAdapter.ViewHolder>{
     private static final String TAG = LocationPicturesAdapter.class.getSimpleName();
-    private List<VenueResponse> venueResponseList;
+    private VenueResponse venueResponse;
     private Context context;
     private Bundle bundle;
     private LocationPicturesContract.AdapterPresenterListener listener;
@@ -47,8 +47,8 @@ public class LocationPicturesAdapter extends RecyclerView.Adapter<LocationPictur
         this.generalHelper = generalHelper;
     }
 
-    public void setVenueResponseList(List<VenueResponse> venueResponseList) {
-        this.venueResponseList = sortList(venueResponseList);
+    public void setVenueResponseList(VenueResponse venueResponse) {
+        this.venueResponse = venueResponse;//sortList(venueResponseList);
     }
 
     private List<VenueResponse> sortList(List<VenueResponse> venueResponseList) {
@@ -73,24 +73,20 @@ public class LocationPicturesAdapter extends RecyclerView.Adapter<LocationPictur
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 
-        VenueResponse.Response.Venue venue = venueResponseList.get(position).getResponse().getVenue();
+        VenueResponse.Response.Venue venue = venueResponse.getResponse().getVenue();
 
         holder.rlyt_root.setOnClickListener(view -> {
             System.out.println(position);
-            bundle.putString(Constants.INTENT_EXTRA_PLACE, generalHelper.getJSONFromObject(venueResponseList.get(position).getResponse().getVenue()));
+            bundle.putString(Constants.INTENT_EXTRA_PLACE, generalHelper.getJSONFromObject(venueResponse.getResponse().getVenue()));
             listener.onGridItemClick(bundle);
         });
         if(venue.getPhotos() != null && venue.getPhotos().getGroups().size() > 0 && venue.getPhotos().getGroups().get(0).getItems().size() > 0) {
-            String imageUrl = venue.getPhotos().getGroups().get(0).getItems().get(0).getPrefix() +
-                    venue.getPhotos().getGroups().get(0).getItems().get(0).getWidth() + "x" +
-                    venue.getPhotos().getGroups().get(0).getItems().get(0).getHeight() +
-                    venue.getPhotos().getGroups().get(0).getItems().get(0).getSuffix();
+            String imageUrl = venue.getPhotos().getGroups().get(0).getItems().get(position).getPrefix() +
+                    venue.getPhotos().getGroups().get(0).getItems().get(position).getWidth() + "x" +
+                    venue.getPhotos().getGroups().get(0).getItems().get(position).getHeight() +
+                    venue.getPhotos().getGroups().get(0).getItems().get(position).getSuffix();
             generalHelper.imageLoaderUrl(context, holder.iv_image, imageUrl, true);
         }
-        String title = venue.getName().length() > 35 ? venue.getName().substring(0, 35) + "..." : venue.getName();
-        holder.tv_title.setText(title);
-        String distance = (double)venue.getLocation().getDistance()/1000 + " KM Away";
-        holder.tv_distance.setText(distance);
     }
 
     @Override
@@ -100,17 +96,14 @@ public class LocationPicturesAdapter extends RecyclerView.Adapter<LocationPictur
 
     @Override
     public int getItemCount() {
-        if (venueResponseList != null)
-            return venueResponseList.size();
+        if (venueResponse.getResponse().getVenue().getPhotos().getGroups().get(0).getItems() != null)
+            return venueResponse.getResponse().getVenue().getPhotos().getGroups().get(0).getItems().size();
         else return 0;
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
         @BindView(R.id.rlyt_root) RelativeLayout rlyt_root;
         @BindView(R.id.iv_image) ImageView iv_image;
-        @BindView(R.id.llyt_details) LinearLayout llyt_details;
-        @BindView(R.id.tv_title) TextView tv_title;
-        @BindView(R.id.tv_distance) TextView tv_distance;
 
         public ViewHolder(View view) {
             super(view);

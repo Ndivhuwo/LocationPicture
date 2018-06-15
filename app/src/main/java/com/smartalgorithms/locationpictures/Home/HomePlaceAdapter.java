@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.smartalgorithms.locationpictures.Constants;
 import com.smartalgorithms.locationpictures.LocationPictures.LocationPicturesActivity;
+import com.smartalgorithms.locationpictures.MapMarker.MapMarkerActivity;
 import com.smartalgorithms.locationpictures.Models.NearByPlacesResponse;
 import com.smartalgorithms.locationpictures.R;
 
@@ -59,8 +60,7 @@ public class HomePlaceAdapter extends RecyclerView.Adapter<HomePlaceAdapter.View
         holder.tv_place_title.setText(location);
         holder.lyt_root.setOnClickListener(v -> {
             bundle.putStringArrayList(Constants.INTENT_EXTRA_PLACE_LIST, (ArrayList<String>) venueListMap.values().toArray()[position]);
-            bundle.putString(Constants.INTENT_EXTRA_LOCATION, location);
-            listener.transitionOn(LocationPicturesActivity.class, bundle, false);
+            listener.transitionOn(MapMarkerActivity.class, bundle, false);
         });
     }
 

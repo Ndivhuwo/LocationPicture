@@ -8,11 +8,18 @@
     <application
         android:name=".App"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo_256x256"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/logo_256x256"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_api_key" />
+
         <activity android:name=".Home.HomeActivity"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -29,6 +36,10 @@
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoTitleNoActionBar"
+            />
+        <activity android:name=".MapMarker.MapMarkerActivity"
+            android:configChanges="orientation|screenSize"
+            android:launchMode="singleTop"
             />
         <service android:name=".Services.LocationService"
             android:label="Location Service">

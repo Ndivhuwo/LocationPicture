@@ -3,6 +3,8 @@ package com.smartalgorithms.locationpictures.Home;
 import android.Manifest;
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
+import android.arch.lifecycle.MutableLiveData;
+import android.arch.lifecycle.ViewModel;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.View;
@@ -26,13 +28,15 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+import io.reactivex.disposables.CompositeDisposable;
+
 /**
  * Created by Ndivhuwo Nthambeleni on 2018/05/14.
  * Updated by Ndivhuwo Nthambeleni on 2018/05/14.
  */
 
-public class HomePresenter implements HomeContract.PresenterListener, HomeContract.AdapterPresenterListener {
-    private static final String TAG = HomePresenter.class.getSimpleName();
+public class HomeViewModel extends ViewModel implements HomeContract.PresenterListener, HomeContract.AdapterPresenterListener {
+    private static final String TAG = HomeViewModel.class.getSimpleName();
 
     private RxPermissions rxPermissions;
     private HomeUseCase homeUseCase;
@@ -44,13 +48,14 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
     private Provider<HomePlaceAdapter> homePlaceAdapterProvider;
     private boolean requestPermissions = true;
     private LatLng coordinates;
-    private LifecycleOwner lifecycleOwner;
+    public MutableLiveData<NearByPlacesResponse> placesResponseMutableLiveData;
+    private CompositeDisposable compositeDisposable;
+    private Provider<CompositeDisposable> compositeDisposableProvider;
 
     @Inject
-    HomePresenter(LifecycleOwner lifecycleOwner, RxPermissions rxPermissions, Provider<HomeUseCase> homeUseCaseProvider,
+    HomeViewModel(RxPermissions rxPermissions, Provider<HomeUseCase> homeUseCaseProvider,
                   HomeContract.ViewListener viewListener, ResourcesHelper resourcesHelper,
-                  GeneralHelper generalHelper, LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider) {
-        this.lifecycleOwner = lifecycleOwner;
+                  GeneralHelper generalHelper, LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider, Provider<CompositeDisposable> compositeDisposableProvider) {
         this.rxPermissions = rxPermissions;
         this.homeUseCaseProvider = homeUseCaseProvider;
         this.viewListener = viewListener;
@@ -58,6 +63,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
         this.generalHelper = generalHelper;
         this.loggingHelper = loggingHelper;
         this.homePlaceAdapterProvider = homePlaceAdapterProvider;
+        this.compositeDisposableProvider = compositeDisposableProvider;
     }
 
     void resume() {
@@ -66,6 +72,20 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
                 homeUseCase = homeUseCaseProvider.get();
             homeUseCase.resume();
         }
+        loadNewCompositeDisposable();
+    }
+    private void loadNewCompositeDisposable() {
+        if (compositeDisposableProvider != null) {
+            compositeDisposable = compositeDisposableProvider.get();
+        }
+    }
+
+    @Override
+    protected void onCleared() {
+        if(compositeDisposable != null) {
+            compositeDisposable.dispose();
+        }
+        super.onCleared();
     }
 
     @Override
@@ -73,9 +93,10 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
 
         if (!rxPermissions.isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || !rxPermissions.isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
             if (requestPermissions)
-                rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                if(compositeDisposable.isDisposed())
+                    loadNewCompositeDisposable();
+                compositeDisposable.add(rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         .doOnDispose(() -> loggingHelper.i(TAG, "Disposing requestPhonePermissions Single"))
-                        .as(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(lifecycleOwner, Lifecycle.Event.ON_DESTROY)))
                         .subscribe(granted -> {
                             if (granted) {
                                 loggingHelper.d(TAG, "Permissions set");
@@ -95,7 +116,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
                                         okListener, cancelListener, resourcesHelper.getString(R.string.text_ok), resourcesHelper.getString(R.string.text_cancel));
                                 viewListener.togglePermissions(false);
                             }
-                        });
+                        }));
         } else {
             loggingHelper.d(TAG, "Permissions Already set");
             viewListener.requestLocation();
@@ -112,6 +133,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
 
     @Override
     public void onGetNearByPlaces(@Nullable NearByPlacesResponse nearByPlacesResponse, @Nullable String message) {
+        placesResponseMutableLiveData.postValue(nearByPlacesResponse);
         if (nearByPlacesResponse != null) {
             String[] locations = {"Less than 1km Away", "Between 1km and 2km Away", "Between 2km and 3km Away", "Between 3km and 4km Away", "Between 4km and 5km Away", "Between 5km and 6km Away", "Between 6km and 7km Away"};
             LinkedHashMap<String, ArrayList<String>> venueMap = new LinkedHashMap<>();

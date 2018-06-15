@@ -1,7 +1,9 @@
 package com.smartalgorithms.locationpictures.LocationPictures;
 
+import android.arch.lifecycle.LifecycleOwner;
 import android.os.Bundle;
 
+import com.smartalgorithms.locationpictures.Dagger.Annotations;
 import com.smartalgorithms.locationpictures.Helpers.GeneralHelper;
 import com.smartalgorithms.locationpictures.Helpers.LoggingHelper;
 import com.smartalgorithms.locationpictures.Network.NearByPlacesNetAPI;
@@ -21,28 +23,39 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 
 @Module
 public abstract class LocationPicturesModule {
+    @Annotations.ActivityScope
     @Provides
     static LocationPicturesPresenter provideLocationPicturesPresenter(LocationPicturesContract.ViewListener viewListener, Provider<LocationPicturesUseCase> locationPicturesUseCaseProvider,
                                                                       Provider<LocationPicturesAdapter> locationPicturesAdapter, LoggingHelper loggingHelper) {
         return new LocationPicturesPresenter(viewListener, locationPicturesUseCaseProvider, locationPicturesAdapter, loggingHelper);
     }
 
-    @Binds
-    abstract LocationPicturesContract.ViewListener provideViewListener(LocationPicturesActivity locationPicturesActivity);
-
+    @Annotations.ActivityScope
     @Provides
-    static LocationPicturesUseCase provideLocationPicturesUseCase(LocationPicturesContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider, NearByPlacesNetAPI nearByPlacesNetAPI, GeneralHelper generalHelper) {
-        return new LocationPicturesUseCase(presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), nearByPlacesNetAPI, generalHelper);
+    static LocationPicturesUseCase provideLocationPicturesUseCase(LifecycleOwner lifecycleOwner, LocationPicturesContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider,
+                                                                  NearByPlacesNetAPI nearByPlacesNetAPI, GeneralHelper generalHelper, LoggingHelper loggingHelper) {
+        return new LocationPicturesUseCase(lifecycleOwner, presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), nearByPlacesNetAPI, generalHelper, loggingHelper);
     }
 
-    @Binds
-    abstract LocationPicturesContract.PresenterListener providePresenterListener(LocationPicturesPresenter locationPicturesPresenter);
-
+    @Annotations.ActivityScope
     @Provides
     static LocationPicturesAdapter provideLocationPicturesAdapter(LocationPicturesContract.AdapterPresenterListener listener, Bundle bundle, GeneralHelper generalHelper) {
         return new LocationPicturesAdapter(bundle, listener, generalHelper);
     }
 
+    @Annotations.ActivityScope
+    @Binds
+    abstract LocationPicturesContract.ViewListener provideViewListener(LocationPicturesActivity locationPicturesActivity);
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract LifecycleOwner provideLifecycleOwner(LocationPicturesActivity locationPicturesActivity);
+
+    @Annotations.ActivityScope
+    @Binds
+    abstract LocationPicturesContract.PresenterListener providePresenterListener(LocationPicturesPresenter locationPicturesPresenter);
+
+    @Annotations.ActivityScope
     @Binds
     abstract LocationPicturesContract.AdapterPresenterListener provideAdapterPresenterListener(LocationPicturesPresenter locationPicturesPresenter);
 }

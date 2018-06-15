@@ -58,9 +58,8 @@ public class LocationPicturesActivity extends AppCompatActivity implements Locat
     protected void onResume() {
         super.onResume();
         if(loadImages) {
-            String location = getIntent().getStringExtra(Constants.INTENT_EXTRA_LOCATION);
-            tv_header.setText(location);
-            presenter.resume(getIntent().getStringArrayListExtra(Constants.INTENT_EXTRA_PLACE_LIST));
+
+            presenter.resume(getIntent().getStringExtra(Constants.INTENT_EXTRA_PLACE));
         }
     }
 
@@ -75,6 +74,11 @@ public class LocationPicturesActivity extends AppCompatActivity implements Locat
         ButterKnife.bind(this);
         rv_images.setNestedScrollingEnabled(false);
         rv_images.setLayoutManager(new GridLayoutManager(LocationPicturesActivity.this, 2));
+    }
+
+    @Override
+    public void updateTitle(String location) {
+        tv_header.setText(location);
     }
 
     @Override

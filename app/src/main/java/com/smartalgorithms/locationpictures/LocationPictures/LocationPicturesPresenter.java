@@ -38,29 +38,33 @@ public class LocationPicturesPresenter implements LocationPicturesContract.Prese
         this.loggingHelper = loggingHelper;
     }
 
-    public void resume(ArrayList<String> stringArrayListExtra) {
+    public void resume(String placeJSON) {
         viewListener.displayLoadingLottieAnimation(true);
         if(locationPicturesUseCaseProvider != null) {
             if(locationPicturesUseCase == null)
                 locationPicturesUseCase = locationPicturesUseCaseProvider.get();
-            locationPicturesUseCase.resume(stringArrayListExtra);
+            locationPicturesUseCase.resume(placeJSON);
         }
     }
 
     @Override
-    public void onRequestImages(@Nullable List<VenueResponse> venueResponseList, @Nullable String message) {
+    public void onRequestImages(@Nullable VenueResponse venueResponse, @Nullable String message) {
         viewListener.displayLoadingLottieAnimation(false);
-        if (venueResponseList != null) {
+        viewListener.updateTitle(venueResponse.getResponse().getVenue().getName());
+        if (venueResponse != null) {
             LocationPicturesAdapter locationPicturesAdapter = locationPicturesAdapterProvider.get();
-            List<VenueResponse> finalVenueResponses = new ArrayList<>();
-            for(VenueResponse response : venueResponseList) {
-                if(response.getResponse().getVenue().getPhotos().getGroups().size() > 0) {
-                    loggingHelper.i(TAG, response.getResponse().getVenue().getName() + " Distance: " + response.getResponse().getVenue().getLocation().getDistance());
-                    finalVenueResponses.add(response);
+            //List<VenueResponse> finalVenueResponses = new ArrayList<>();
+            //for(VenueResponse response : venueResponseList) {
+                if(venueResponse.getResponse().getVenue().getPhotos().getGroups().size() > 0) {
+                    loggingHelper.i(TAG, venueResponse.getResponse().getVenue().getName() + " Distance: " + venueResponse.getResponse().getVenue().getLocation().getDistance());
+                    //finalVenueResponses.add(response);
+                    locationPicturesAdapter.setVenueResponseList(venueResponse);
+                    viewListener.setGridViewAdapter(locationPicturesAdapter);
+                } else {
+                    viewListener.displayMessage(R.string.text_error, R.string.text_request_images_error);
+                    viewListener.setGridViewAdapter(null);
                 }
-            }
-            locationPicturesAdapter.setVenueResponseList(finalVenueResponses);
-            viewListener.setGridViewAdapter(locationPicturesAdapter);
+            //}
         }
         else {
             viewListener.displayMessage(R.string.text_error, R.string.text_request_images_error);
