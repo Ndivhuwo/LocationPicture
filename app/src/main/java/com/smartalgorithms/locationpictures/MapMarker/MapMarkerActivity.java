@@ -1,8 +1,12 @@
 package com.smartalgorithms.locationpictures.MapMarker;
 
 import android.annotation.SuppressLint;
+import android.arch.lifecycle.ViewModel;
+import android.arch.lifecycle.ViewModelProvider;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -18,6 +22,7 @@ import com.smartalgorithms.locationpictures.Helpers.ResourcesHelper;
 import com.smartalgorithms.locationpictures.R;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -28,9 +33,10 @@ import dagger.android.AndroidInjection;
  * Updated by Ndivhuwo Nthambeleni on 2018/05/29.
  */
 
-public class MapMarkerActivity extends AppCompatActivity implements MapMarkerContact.ViewListener{
+public class MapMarkerActivity extends AppCompatActivity implements MapMarkerContact.ViewListener, ViewModelProvider.Factory{
     private static final String TAG = MapMarkerActivity.class.getSimpleName();
-    @Inject MapMarkerPresenter presenter;
+    private MapMarkerPresenter presenter;
+    @Inject Provider<MapMarkerPresenter> presenterProvider;
     @Inject DialogHelper dialogHelper;
     @Inject ResourcesHelper resourcesHelper;
     @Inject Intent intent;
@@ -43,6 +49,7 @@ public class MapMarkerActivity extends AppCompatActivity implements MapMarkerCon
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         AndroidInjection.inject(this);
         super.onCreate(savedInstanceState);
+        presenter = ViewModelProviders.of(this, this).get(MapMarkerPresenter.class);
         setupUI(savedInstanceState);
     }
 
@@ -93,5 +100,11 @@ public class MapMarkerActivity extends AppCompatActivity implements MapMarkerCon
             lav_loading.setVisibility(View.GONE);
             rlyt_loading.setVisibility(View.GONE);
         }
+    }
+
+    @NonNull
+    @Override
+    public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+        return modelClass.cast(presenterProvider.get());
     }
 }

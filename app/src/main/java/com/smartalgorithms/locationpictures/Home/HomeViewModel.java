@@ -1,9 +1,6 @@
 package com.smartalgorithms.locationpictures.Home;
 
 import android.Manifest;
-import android.arch.lifecycle.Lifecycle;
-import android.arch.lifecycle.LifecycleOwner;
-import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -18,8 +15,6 @@ import com.smartalgorithms.locationpictures.Models.LocationResponse;
 import com.smartalgorithms.locationpictures.Models.NearByPlacesResponse;
 import com.smartalgorithms.locationpictures.R;
 import com.tbruyelle.rxpermissions2.RxPermissions;
-import com.uber.autodispose.AutoDispose;
-import com.uber.autodispose.android.lifecycle.AndroidLifecycleScopeProvider;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,14 +43,15 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
     private Provider<HomePlaceAdapter> homePlaceAdapterProvider;
     private boolean requestPermissions = true;
     private LatLng coordinates;
-    public MutableLiveData<NearByPlacesResponse> placesResponseMutableLiveData;
     private CompositeDisposable compositeDisposable;
     private Provider<CompositeDisposable> compositeDisposableProvider;
+    private HomePlaceAdapter adapter;
 
     @Inject
     HomeViewModel(RxPermissions rxPermissions, Provider<HomeUseCase> homeUseCaseProvider,
                   HomeContract.ViewListener viewListener, ResourcesHelper resourcesHelper,
-                  GeneralHelper generalHelper, LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider, Provider<CompositeDisposable> compositeDisposableProvider) {
+                  GeneralHelper generalHelper, LoggingHelper loggingHelper, Provider<HomePlaceAdapter> homePlaceAdapterProvider,
+                  Provider<CompositeDisposable> compositeDisposableProvider) {
         this.rxPermissions = rxPermissions;
         this.homeUseCaseProvider = homeUseCaseProvider;
         this.viewListener = viewListener;
@@ -72,12 +68,22 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
                 homeUseCase = homeUseCaseProvider.get();
             homeUseCase.resume();
         }
-        loadNewCompositeDisposable();
     }
-    private void loadNewCompositeDisposable() {
-        if (compositeDisposableProvider != null) {
-            compositeDisposable = compositeDisposableProvider.get();
+
+    public HomePlaceAdapter getAdapter() {
+        if(homePlaceAdapterProvider != null) {
+            if(adapter == null)
+                adapter = homePlaceAdapterProvider.get();
         }
+        return adapter;
+    }
+
+    private CompositeDisposable getCompositeDisposable() {
+        if (compositeDisposableProvider != null) {
+            if (compositeDisposable == null || compositeDisposable.isDisposed())
+                compositeDisposable = compositeDisposableProvider.get();
+        }
+        return compositeDisposable;
     }
 
     @Override
@@ -85,6 +91,7 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
         if(compositeDisposable != null) {
             compositeDisposable.dispose();
         }
+        homeUseCase.onInactive();
         super.onCleared();
     }
 
@@ -93,15 +100,14 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
 
         if (!rxPermissions.isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || !rxPermissions.isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
             if (requestPermissions)
-                if(compositeDisposable.isDisposed())
-                    loadNewCompositeDisposable();
-                compositeDisposable.add(rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                getCompositeDisposable().add(rxPermissions.request(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                         .doOnDispose(() -> loggingHelper.i(TAG, "Disposing requestPhonePermissions Single"))
                         .subscribe(granted -> {
                             if (granted) {
                                 loggingHelper.d(TAG, "Permissions set");
                                 viewListener.togglePermissions(true);
-                                viewListener.requestLocation();
+                                requestLocation();
+                                homeUseCase.onActive();
                             } else {
                                 requestPermissions = false;
                                 loggingHelper.d(TAG, "Permissions not set");
@@ -119,7 +125,8 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
                         }));
         } else {
             loggingHelper.d(TAG, "Permissions Already set");
-            viewListener.requestLocation();
+            requestLocation();
+            homeUseCase.onActive();
         }
     }
 
@@ -133,7 +140,6 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
 
     @Override
     public void onGetNearByPlaces(@Nullable NearByPlacesResponse nearByPlacesResponse, @Nullable String message) {
-        placesResponseMutableLiveData.postValue(nearByPlacesResponse);
         if (nearByPlacesResponse != null) {
             String[] locations = {"Less than 1km Away", "Between 1km and 2km Away", "Between 2km and 3km Away", "Between 3km and 4km Away", "Between 4km and 5km Away", "Between 5km and 6km Away", "Between 6km and 7km Away"};
             LinkedHashMap<String, ArrayList<String>> venueMap = new LinkedHashMap<>();
@@ -163,9 +169,8 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
                     venueMap.remove(entry.getKey());
             }
 
-            HomePlaceAdapter adapter = homePlaceAdapterProvider.get();
-            adapter.setVenueListMap(venueMap);
-            viewListener.onAdapterCreated(adapter);
+            getAdapter().setVenueListMap(venueMap);
+            viewListener.onAdapterCreated(getAdapter());
         } else {
             viewListener.onAdapterCreated(null);
             loggingHelper.e(TAG, "onGetNearByPlaces Error: " + message);
@@ -173,6 +178,12 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
         viewListener.displayLoadingLottieAnimation(false);
     }
 
+    @Override
+    public void displayReloadLottieAnimation(boolean show) {
+        viewListener.displayReloadLottieAnimation(show);
+    }
+
+    @Override
     public void requestAddress(LatLng coordinates) {
         this.coordinates = coordinates;
         if (!generalHelper.isInternetAvailable()) {
@@ -181,7 +192,14 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
             homeUseCase.getReverseGeocode(coordinates);
     }
 
+    @Override
+    public void requestLocation() {
+        viewListener.requestLocation();
+    }
+
+    @Override
     public void requestNearByPlaces(LatLng coordinates, int searchRadius) {
+        this.coordinates = coordinates;
         viewListener.displayLoadingLottieAnimation(true);
         homeUseCase.getNearByPlaces(coordinates, searchRadius);
     }
@@ -191,5 +209,9 @@ public class HomeViewModel extends ViewModel implements HomeContract.PresenterLi
         bundle.putDouble(Constants.INTENT_EXTRA_CURRENT_LAT, coordinates.latitude);
         bundle.putDouble(Constants.INTENT_EXTRA_CURRENT_LNG, coordinates.longitude);
         viewListener.transitionOn(toClass, bundle, finish);
+    }
+
+    public void onBtnClickRefresh() {
+        homeUseCase.refreshLocationListener();
     }
 }

@@ -45,6 +45,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
     private boolean requestPermissions = true;
     private LatLng coordinates;
     private LifecycleOwner lifecycleOwner;
+    private HomePlaceAdapter adapter;
 
     @Inject
     HomePresenter(LifecycleOwner lifecycleOwner, RxPermissions rxPermissions, Provider<HomeUseCase> homeUseCaseProvider,
@@ -68,6 +69,14 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
         }
     }
 
+    public HomePlaceAdapter getAdapter() {
+        if(homePlaceAdapterProvider != null) {
+            if(adapter == null)
+                adapter = homePlaceAdapterProvider.get();
+        }
+        return adapter;
+    }
+
     @Override
     public void requestPhonePermissions() {
 
@@ -80,7 +89,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
                             if (granted) {
                                 loggingHelper.d(TAG, "Permissions set");
                                 viewListener.togglePermissions(true);
-                                viewListener.requestLocation();
+                                requestLocation();
                             } else {
                                 requestPermissions = false;
                                 loggingHelper.d(TAG, "Permissions not set");
@@ -98,7 +107,7 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
                         });
         } else {
             loggingHelper.d(TAG, "Permissions Already set");
-            viewListener.requestLocation();
+            requestLocation();
         }
     }
 
@@ -141,14 +150,18 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
                     venueMap.remove(entry.getKey());
             }
 
-            HomePlaceAdapter adapter = homePlaceAdapterProvider.get();
-            adapter.setVenueListMap(venueMap);
-            viewListener.onAdapterCreated(adapter);
+            getAdapter().setVenueListMap(venueMap);
+            viewListener.onAdapterCreated(getAdapter());
         } else {
             viewListener.onAdapterCreated(null);
             loggingHelper.e(TAG, "onGetNearByPlaces Error: " + message);
         }
         viewListener.displayLoadingLottieAnimation(false);
+    }
+
+    @Override
+    public void displayReloadLottieAnimation(boolean show) {
+        viewListener.displayReloadLottieAnimation(show);
     }
 
     public void requestAddress(LatLng coordinates) {
@@ -157,6 +170,11 @@ public class HomePresenter implements HomeContract.PresenterListener, HomeContra
             viewListener.displayToast(resourcesHelper.getString(R.string.error_body_internet_connection_required));
         } else
             homeUseCase.getReverseGeocode(coordinates);
+    }
+
+    @Override
+    public void requestLocation() {
+        viewListener.requestLocation();
     }
 
     public void requestNearByPlaces(LatLng coordinates, int searchRadius) {

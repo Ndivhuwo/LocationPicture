@@ -50,16 +50,11 @@ import io.reactivex.Single;
 
 public class HomeActivity extends AppCompatActivity implements HomeContract.ViewListener, ViewModelProvider.Factory {
     private static final String TAG = HomeActivity.class.getSimpleName();
-    private static final int SEARCH_RADIUS = 7000;
 
     private HomeViewModel homeViewModel;
     @Inject Provider<HomeViewModel> homeViewModelProvider;
     @Inject
     Intent intent;
-    @Inject
-    Provider<LocalBroadcastManager> localBroadcastManagerProvider;
-    @Inject
-    IntentFilter intentFilter;
     @Inject
     LoggingHelper loggingHelper;
     @Inject
@@ -88,53 +83,26 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
     TextView tv_message;
     @BindView(R.id.rlyt_content)
     RelativeLayout rlyt_content;
-    private LatLng coordinates;
-    private boolean search = true;
-
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Bundle bundle = intent.getExtras();
-            if (coordinates == null && search) {
-                coordinates = new LatLng(bundle.getDouble("lat"), bundle.getDouble("lng"));
-                loggingHelper.i("Broadcast receiver", "lat: " + coordinates.latitude + " lang: " + coordinates.longitude);
-                homeViewModel.requestAddress(coordinates);
-                homeViewModel.requestNearByPlaces(coordinates, SEARCH_RADIUS);
-                search = false;
-            } else if (coordinates.longitude != bundle.getDouble("lng") && coordinates.latitude != bundle.getDouble("lat") && search) {
-                coordinates = new LatLng(bundle.getDouble("lat"), bundle.getDouble("lng"));
-                loggingHelper.i("Broadcast receiver", "lat: " + coordinates.latitude + " lang: " + coordinates.longitude);
-                homeViewModel.requestAddress(coordinates);
-                homeViewModel.requestNearByPlaces(coordinates, SEARCH_RADIUS);
-                search = false;
-            }
-
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         AndroidInjection.inject(this);
         super.onCreate(savedInstanceState);
         homeViewModel = ViewModelProviders.of(this, this).get(HomeViewModel.class);
-        //homeViewModel.placesResponseMutableLiveData.observe();
         setupUI();
-        localBroadcastManagerProvider.get().registerReceiver(receiver, intentFilter);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        homeViewModel.resume();
         startService(App.getLocationIntent());
-        localBroadcastManagerProvider.get().registerReceiver(receiver, intentFilter);
+        homeViewModel.resume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         stopService(App.getLocationIntent());
-        localBroadcastManagerProvider.get().unregisterReceiver(receiver);
     }
 
     @Override
@@ -146,20 +114,7 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
     private void setupUI() {
         setContentView(R.layout.activity_home);
         ButterKnife.bind(this);
-        iv_refresh.setOnClickListener(v -> {
-            displayReloadLottieAnimation(true);
-            Single.timer(500, TimeUnit.MILLISECONDS)
-                    .doOnDispose(() -> loggingHelper.i(TAG, "Disposing timer Single"))
-                    .subscribeOn(subscribeScheduler)
-                    .observeOn(observeScheduler)
-                    .as(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(this, Lifecycle.Event.ON_DESTROY)))
-                    .subscribe(time -> {
-                        search = true;
-                        coordinates = null;
-                        requestLocation();
-                        displayReloadLottieAnimation(false);
-                    });
-        });
+        iv_refresh.setOnClickListener(v -> homeViewModel.onBtnClickRefresh());
     }
 
     @Override
@@ -196,12 +151,6 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
     @Override
     public void displayToast(String message) {
         dialogHelper.showToast(message);
-    }
-
-    @Override
-    public void requestLocation() {
-        stopService(App.getLocationIntent());
-        startService(App.getLocationIntent());
     }
 
     @Override
@@ -256,5 +205,11 @@ public class HomeActivity extends AppCompatActivity implements HomeContract.View
     @Override
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         return modelClass.cast(homeViewModelProvider.get());
+    }
+
+    @Override
+    public void requestLocation() {
+        stopService(App.getLocationIntent());
+        startService(App.getLocationIntent());
     }
 }

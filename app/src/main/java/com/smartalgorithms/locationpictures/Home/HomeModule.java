@@ -2,6 +2,7 @@ package com.smartalgorithms.locationpictures.Home;
 
 import android.arch.lifecycle.LifecycleOwner;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 
@@ -49,9 +50,11 @@ public abstract class HomeModule {
 
     @Annotations.ActivityScope
     @Provides
-    static HomeUseCase provideHomeUseCase(LifecycleOwner lifecycleOwner, HomeContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider, LocationNetAPI locationNetAPI,
-                                          LocationResponse locationResponse, NearByPlacesNetAPI nearByPlacesNetAPI, NearByPlacesResponse nearByPlacesResponse, LoggingHelper loggingHelper) {
-        return new HomeUseCase(lifecycleOwner, presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), locationNetAPI, locationResponse, nearByPlacesNetAPI, nearByPlacesResponse, loggingHelper);
+    static HomeUseCase provideHomeUseCase(HomeContract.PresenterListener presenterListener, Provider<Scheduler> subscribeSchedulerProvider, LocationNetAPI locationNetAPI,
+                                          LocationResponse locationResponse, NearByPlacesNetAPI nearByPlacesNetAPI, LoggingHelper loggingHelper,
+                                          Provider<LocalBroadcastManager> localBroadcastManagerProvider, IntentFilter intentFilter, Provider<CompositeDisposable> compositeDisposableProvider) {
+        return new HomeUseCase(presenterListener, subscribeSchedulerProvider, AndroidSchedulers.mainThread(), locationNetAPI, locationResponse, nearByPlacesNetAPI, loggingHelper,
+                localBroadcastManagerProvider, intentFilter, compositeDisposableProvider);
     }
 
     @Annotations.ActivityScope
@@ -109,7 +112,7 @@ public abstract class HomeModule {
 
     @Annotations.ActivityScope
     @Binds
-    abstract HomeContract.AdapterPresenterListener provideAdapterPresenterListener(HomePresenter homePresenter);
+    abstract HomeContract.AdapterPresenterListener provideAdapterPresenterListener(HomeViewModel homeViewModel);
 
     @Annotations.ActivityScope
     @Binds

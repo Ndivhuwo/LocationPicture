@@ -2,6 +2,7 @@ package com.smartalgorithms.locationpictures.MapMarker;
 
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.LifecycleOwner;
+import android.arch.lifecycle.ViewModel;
 import android.os.Bundle;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -29,13 +30,14 @@ import javax.inject.Provider;
 
 import io.reactivex.Scheduler;
 import io.reactivex.Single;
+import io.reactivex.disposables.CompositeDisposable;
 
 /**
  * Created by Ndivhuwo Nthambeleni on 2018/05/29.
  * Updated by Ndivhuwo Nthambeleni on 2018/05/29.
  */
 
-public class MapMarkerPresenter implements MapMarkerContact.PresenterListener {
+public class MapMarkerPresenter extends ViewModel implements MapMarkerContact.PresenterListener {
     private static final String TAG = MapMarkerPresenter.class.getSimpleName();
 
     private MapMarkerContact.ViewListener viewListener;
@@ -49,32 +51,16 @@ public class MapMarkerPresenter implements MapMarkerContact.PresenterListener {
     private double currentLat;
     private double currentLng;
     private LoggingHelper loggingHelper;
-    private LifecycleOwner lifecycleOwner;
     private Scheduler subscribeScheduler;
     private Scheduler observeScheduler;
-    private GoogleMap.OnMarkerClickListener markerClickListener = marker -> {
-        Single.timer(1000, TimeUnit.MILLISECONDS)
-                .doOnDispose(() -> loggingHelper.i(TAG, "Disposing timer Single"))
-                .subscribeOn(subscribeScheduler)
-                .observeOn(observeScheduler)
-                .as(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(lifecycleOwner, Lifecycle.Event.ON_DESTROY)))
-                .subscribe(time -> {
-                    for (NearByPlacesResponse.Response.Group.Item.Venue venue : venues) {
-                        if (marker.getTag() != null && marker.getTag().equals(venue.getName())) {
-                            bundle.putString(Constants.INTENT_EXTRA_PLACE, generalHelper.getJSONFromObject(venue));
-                            viewListener.transitionOn(LocationPicturesActivity.class, bundle, false);
-                        }
-                    }
-                });
-
-        return false;
-    };
+    private CompositeDisposable compositeDisposable;
+    private Provider<CompositeDisposable> compositeDisposableProvider;
 
     @Inject
-    public MapMarkerPresenter(LifecycleOwner lifecycleOwner, MapMarkerContact.ViewListener viewListener, Provider<MapMarkerUseCase> mapMarkerUseCaseProvider,
+    public MapMarkerPresenter(MapMarkerContact.ViewListener viewListener, Provider<MapMarkerUseCase> mapMarkerUseCaseProvider,
                               ResourcesHelper resourcesHelper, GeneralHelper generalHelper, Bundle bundle,
-                              LoggingHelper loggingHelper, Scheduler subscribeScheduler, Scheduler observeScheduler) {
-        this.lifecycleOwner = lifecycleOwner;
+                              LoggingHelper loggingHelper, Scheduler subscribeScheduler, Scheduler observeScheduler,
+                              Provider<CompositeDisposable> compositeDisposableProvider) {
         this.viewListener = viewListener;
         this.mapMarkerUseCaseProvider = mapMarkerUseCaseProvider;
         this.resourcesHelper = resourcesHelper;
@@ -83,16 +69,35 @@ public class MapMarkerPresenter implements MapMarkerContact.PresenterListener {
         this.loggingHelper = loggingHelper;
         this.subscribeScheduler = subscribeScheduler;
         this.observeScheduler = observeScheduler;
+        this.compositeDisposableProvider = compositeDisposableProvider;
     }
 
     public void resume(ArrayList<String> locationList, double currentLat, double currentLng) {
         this.currentLat = currentLat;
         this.currentLng = currentLng;
         if (mapMarkerUseCaseProvider != null) {
-            if (mapMarkerUseCase == null)
+            if (mapMarkerUseCase == null) {
                 mapMarkerUseCase = mapMarkerUseCaseProvider.get();
-            mapMarkerUseCase.resume(locationList);
+                mapMarkerUseCase.resume(locationList);
+            }
         }
+    }
+
+    @Override
+    protected void onCleared() {
+        if(compositeDisposable != null) {
+            compositeDisposable.dispose();
+        }
+        mapMarkerUseCase.onInactive();
+        super.onCleared();
+    }
+
+    private CompositeDisposable getCompositeDisposable() {
+        if (compositeDisposableProvider != null) {
+            if (compositeDisposable == null || compositeDisposable.isDisposed())
+                compositeDisposable = compositeDisposableProvider.get();
+        }
+        return compositeDisposable;
     }
 
     public void onMapReady(GoogleMap googleMap) {
@@ -126,12 +131,28 @@ public class MapMarkerPresenter implements MapMarkerContact.PresenterListener {
             //viewListener.displayMessage(resourcesHelper.getString(R.string.text_error),
             //resourcesHelper.getString(R.string.text_map_not_ready));
             viewListener.displayLoadingLottieAnimation(true);
-            Single.timer(3000, TimeUnit.MILLISECONDS)
+            getCompositeDisposable().add(Single.timer(3000, TimeUnit.MILLISECONDS)
                     .doOnDispose(() -> loggingHelper.i(TAG, "Disposing timer Single"))
                     .subscribeOn(subscribeScheduler)
                     .observeOn(observeScheduler)
-                    .as(AutoDispose.autoDisposable(AndroidLifecycleScopeProvider.from(lifecycleOwner, Lifecycle.Event.ON_DESTROY)))
-                    .subscribe(time -> requestPopulateMap(venues));
+                    .subscribe(time -> requestPopulateMap(venues)));
         }
     }
+
+    private GoogleMap.OnMarkerClickListener markerClickListener = marker -> {
+        getCompositeDisposable().add(Single.timer(1000, TimeUnit.MILLISECONDS)
+                .doOnDispose(() -> loggingHelper.i(TAG, "Disposing timer Single"))
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(time -> {
+                    for (NearByPlacesResponse.Response.Group.Item.Venue venue : venues) {
+                        if (marker.getTag() != null && marker.getTag().equals(venue.getName())) {
+                            bundle.putString(Constants.INTENT_EXTRA_PLACE, generalHelper.getJSONFromObject(venue));
+                            viewListener.transitionOn(LocationPicturesActivity.class, bundle, false);
+                        }
+                    }
+                }));
+
+        return false;
+    };
 }
